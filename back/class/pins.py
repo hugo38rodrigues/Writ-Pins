@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from typing import List
 import sqlite3
 
-app = FastAPI()
+appPins = FastAPI()
 
 # Middleware CORS pour permettre les requêtes HTTP depuis n'importe quel domaine
-app.add_middleware(
+appPins.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
@@ -15,71 +15,81 @@ app.add_middleware(
 )
 
 # Création d'une classe modèle pour les données de l'objet
-class Item(BaseModel):
-    name: str
-    price: float
+class Pins(BaseModel):
+    id: int
+    title: str
+    description: str
+    tagNum: int
 
 # Configuration de la base de données SQLite
-conn = sqlite3.connect('items.db')
+conn = sqlite3.connect('pins.db')
 c = conn.cursor()
 
-# Création de la table "items" si elle n'existe pas déjà
-c.execute('''CREATE TABLE IF NOT EXISTS items
-             (id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              price REAL NOT NULL)''')
+
+# TODO: Modifier pour rajouter une liaison
+# Création de la table "pins" et "tags" si elle n'existe pas déjà
+c.execute('''CREATE TABLE IF NOT EXISTS tags
+            (id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tag_name TEXT NOT NULL)''')
+c.execute('''CREATE TABLE IF NOT EXISTS pins
+            (id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEST NOT NULL,
+            fk_tags INTEGER NOT NULL)''')
+c.execute('''ALTER TABLE pins ADD FOREIGN KEY (fk_item) REFERENCES tags(id)''')
 conn.commit()
 
+
 # Fonction pour récupérer tous les éléments de la base de données
-def get_all_items():
-    c.execute('SELECT * FROM items')
-    items = c.fetchall()
-    return [{'id': item[0], 'name': item[1], 'price': item[2]} for item in items]
+def get_all_pins():
+    c.execute('SELECT * FROM pins INNER JOIN tags ON pins.fk_tags = tags.id')
+    pins = c.fetchall()
+    return [{'id': pin[0], 'title': pin[1], 'description': pin[2], 'tag_name': pin[3]} for pin in pins]
 
 # Fonction pour récupérer un élément spécifique de la base de données par ID
-def get_item_by_id(item_id):
-    c.execute('SELECT * FROM items WHERE id = ?', (item_id,))
-    item = c.fetchone()
-    if item:
-        return {'id': item[0], 'name': item[1], 'price': item[2]}
+def get_pin_by_id(pin_item):
+    c.execute('SELECT * FROM pins INNER JOIN tags ON pins.fk_tags = tags.id WHERE id = ?', (pin_item,))
+    pin = c.fetchone()
+    if pin:
+        return {'id': pin[0], 'title': pin[1], 'description': pin[2], 'tag_name': pin[3]}
     else:
-        raise HTTPException(status_code=404, detail='Item not found')
+        raise HTTPException(status_code=404, detail='Pin not found')
 
 # Fonction pour ajouter un élément à la base de données
-def add_item(item):
-    c.execute('INSERT INTO items (name, price) VALUES (?, ?)', (item.name, item.price))
+def add_pin(pin):
+    c.execute('INSERT INTO pins (title, description, fk_tags) VALUES (?, ?)', (pin.title, pin.description, pin.tagNum))
     conn.commit()
-    return {'id': c.lastrowid, **item.dict()}
+    return {'id': c.lastrowid, **pin.dict()}
 
 # Fonction pour mettre à jour un élément existant dans la base de données
-def update_item(item_id, item):
-    c.execute('UPDATE items SET name = ?, price = ? WHERE id = ?', (item.name, item.price, item_id))
+def update_pin(pin_id, pin):
+    c.execute('UPDATE pins SET title = ?, description = ?, fk_tags = ? WHERE id = ?', (pin.title, pin.description, pin.tagNum, pin_id))
     conn.commit()
-    return {'id': item_id, **item.dict()}
+    return {'id': pin_id, **pin.dict()}
 
 # Fonction pour supprimer un élément de la base de données par ID
-def delete_item(item_id):
-    c.execute('DELETE FROM items WHERE id = ?', (item_id,))
+def delete_pin(pin_id):
+    c.execute('DELETE FROM pins WHERE id = ?', (pin_id,))
     conn.commit()
-    return {'message': 'Item deleted'}
+    return {'message': 'Pin deleted'}
 
 # Définition des routes de l'API
-@app.get('/items', response_model=List[Item])
-def get_items():
-    return get_all_items()
+@appPins.get('/pins', response_model=List[Pins])
+def get_pins():
+    return get_all_pins()
 
-@app.get('/items/{item_id}', response_model=Item)
-def get_item(item_id: int):
-    return get_item_by_id(item_id)
+@appPins.get('/pins/{pins_id}', response_model=Pins)
+def get_pin(pin_id: int):
+    return get_pin_by_id(pin_id)
 
-@app.post('/items', response_model=Item)
-def create_item(item: Item):
-    return add_item(item)
+@appPins.post('/pins', response_model=Pins)
+def create_item(pin: Pins):
+    return add_pin(pin)
 
-@app.put('/items/{item_id}', response_model=Item)
-def update_item(item_id: int, item: Item):
-    return update_item(item_id, item)
+@appPins.put('/pins/{pin_id}', response_model=Pins)
+def update_pin(pin_id: int, pin: Pins):
+    return update_pin(pin_id, pin)
 
-@app.delete('/items/{item_id}')
-def delete_item(item_id: int):
-    return delete_item(item_id)
+@appPins.delete('/pins/{pin_id}')
+def delete_pin(pin_id: int):
+    return delete_pin(pin_id)
