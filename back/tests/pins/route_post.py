@@ -20,4 +20,20 @@ pins = TestClient(appPins)
 
 def test_read_main():
     response = pins.post("/pins", json=toTestPin)
+    print(response)
     assert response.status_code == 200
+    
+
+
+
+
+
+@appPins.post('/pins', response_model=Pins)
+def create_item(pin: Pins):
+    return add_pin(pin)
+
+# Fonction pour ajouter un élément à la base de données
+def add_pin(pin):
+    c.execute('INSERT INTO pins (title, description, fk_tags) VALUES (?, ?)', (pin.title, pin.description, pin.tagNum))
+    conn.commit()
+    return {'id': c.lastrowid, **pin.dict()}

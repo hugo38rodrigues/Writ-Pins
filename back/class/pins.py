@@ -19,6 +19,7 @@ class Pins(BaseModel):
     id: int
     title: str
     description: str
+    status: bool
     tagNum: int
 
 # Configuration de la base de données SQLite
@@ -26,7 +27,6 @@ conn = sqlite3.connect('pins.db')
 c = conn.cursor()
 
 
-# TODO: Modifier pour rajouter une liaison
 # Création de la table "pins" et "tags" si elle n'existe pas déjà
 c.execute('''CREATE TABLE IF NOT EXISTS tags
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +35,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS pins
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             description TEST NOT NULL,
+            status BOOLEAN NOT NULL,
             fk_tags INTEGER NOT NULL)''')
 c.execute('''ALTER TABLE pins ADD FOREIGN KEY (fk_item) REFERENCES tags(id)''')
 conn.commit()
@@ -44,26 +45,26 @@ conn.commit()
 def get_all_pins():
     c.execute('SELECT * FROM pins INNER JOIN tags ON pins.fk_tags = tags.id')
     pins = c.fetchall()
-    return [{'id': pin[0], 'title': pin[1], 'description': pin[2], 'tag_name': pin[3]} for pin in pins]
+    return [{'id': pin[0], 'title': pin[1], 'description': pin[2], 'status': pin[3], 'tag_name': pin[6]} for pin in pins]
 
 # Fonction pour récupérer un élément spécifique de la base de données par ID
 def get_pin_by_id(pin_item):
     c.execute('SELECT * FROM pins INNER JOIN tags ON pins.fk_tags = tags.id WHERE id = ?', (pin_item,))
     pin = c.fetchone()
     if pin:
-        return {'id': pin[0], 'title': pin[1], 'description': pin[2], 'tag_name': pin[3]}
+        return {'id': pin[0], 'title': pin[1], 'description': pin[2], 'status': pin[3], 'tag_name': pin[6]}
     else:
         raise HTTPException(status_code=404, detail='Pin not found')
 
 # Fonction pour ajouter un élément à la base de données
 def add_pin(pin):
-    c.execute('INSERT INTO pins (title, description, fk_tags) VALUES (?, ?)', (pin.title, pin.description, pin.tagNum))
+    c.execute('INSERT INTO pins (title, description, status, fk_tags) VALUES (?, ?)', (pin.title, pin.description, pin.status, pin.tagNum))
     conn.commit()
     return {'id': c.lastrowid, **pin.dict()}
 
 # Fonction pour mettre à jour un élément existant dans la base de données
 def update_pin(pin_id, pin):
-    c.execute('UPDATE pins SET title = ?, description = ?, fk_tags = ? WHERE id = ?', (pin.title, pin.description, pin.tagNum, pin_id))
+    c.execute('UPDATE pins SET title = ?, description = ?, status = ?, fk_tags = ? WHERE id = ?', (pin.title, pin.description, pin.status, pin.tagNum, pin_id))
     conn.commit()
     return {'id': pin_id, **pin.dict()}
 
