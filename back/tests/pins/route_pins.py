@@ -1,39 +1,49 @@
-import pytest
 from fastapi.testclient import TestClient
-from .main import appPins, Pins
+from main import appPins, Pins
 
 client = TestClient(appPins)
 
-# Test de la route GET /pins
-def test_get_pins():
-    response = client.get('/pins')
-    assert response.status_code == 200
-    assert isinstance(response.json(), list)
-
-# Test de la route GET /pins/{pin_id}
-def test_get_pin():
-    response = client.get('/pins/1')
-    assert response.status_code == 200
-    assert isinstance(response.json(), dict)
-
-# Test de la route POST /pins
 def test_create_pin():
-    new_pin = Pins(title='Nouveau pin', description='Description du nouveau pin', tagNum=1)
-    response = client.post('/pins', json=new_pin.dict())
+    # Envoie une requête POST avec un nouvel élément
+    response = client.post("/pins", json={"title": "Nouveau pin", "description": "Description du nouveau pin", "tagNum": 1})
     assert response.status_code == 200
-    assert isinstance(response.json(), dict)
-    assert response.json()['title'] == new_pin.title
+    assert response.json()["title"] == "Nouveau pin"
+    assert response.json()["description"] == "Description du nouveau pin"
+    assert response.json()["tagNum"] == 1
 
-# Test de la route PUT /pins/{pin_id}
+def test_get_all_pins():
+    # Envoie une requête GET pour récupérer tous les éléments
+    response = client.get("/pins")
+    assert response.status_code == 200
+    assert len(response.json()) > 0
+
+def test_get_pin_by_id():
+    # Crée un nouvel élément et récupère son ID
+    new_pin = client.post("/pins", json={"title": "Nouveau pin", "description": "Description du nouveau pin", "tagNum": 1})
+    new_pin_id = new_pin.json()["id"]
+    # Envoie une requête GET pour récupérer l'élément par ID
+    response = client.get(f"/pins/{new_pin_id}")
+    assert response.status_code == 200
+    assert response.json()["title"] == "Nouveau pin"
+    assert response.json()["description"] == "Description du nouveau pin"
+    assert response.json()["tagNum"] == 1
+
 def test_update_pin():
-    updated_pin = Pins(title='Pin mis à jour', description='Description du pin mise à jour', tagNum=2)
-    response = client.put('/pins/1', json=updated_pin.dict())
+    # Crée un nouvel élément et récupère son ID
+    new_pin = client.post("/pins", json={"title": "Nouveau pin", "description": "Description du nouveau pin", "tagNum": 1})
+    new_pin_id = new_pin.json()["id"]
+    # Envoie une requête PUT pour mettre à jour l'élément
+    response = client.put(f"/pins/{new_pin_id}", json={"title": "Pin mis à jour", "description": "Description du pin mise à jour", "tagNum": 2})
     assert response.status_code == 200
-    assert isinstance(response.json(), dict)
-    assert response.json()['title'] == updated_pin.title
+    assert response.json()["title"] == "Pin mis à jour"
+    assert response.json()["description"] == "Description du pin mise à jour"
+    assert response.json()["tagNum"] == 2
 
-# Test de la route DELETE /pins/{pin_id}
 def test_delete_pin():
-    response = client.delete('/pins/1')
+    # Crée un nouvel élément et récupère son ID
+    new_pin = client.post("/pins", json={"title": "Nouveau pin", "description": "Description du nouveau pin", "tagNum": 1})
+    new_pin_id = new_pin.json()["id"]
+    # Envoie une requête DELETE pour supprimer l'élément
+    response = client.delete(f"/pins/{new_pin_id}")
     assert response.status_code == 200
-    assert response.json()['message'] == 'Pin deleted'
+    assert response.json()["message"] == "Pin deleted"
