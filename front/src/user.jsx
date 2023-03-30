@@ -18,7 +18,7 @@ const User = () => {
     };
 
     const createUser = async () => {
-        await axios.post("http://localhost:5000/users", { name, email });
+        await axios.post("http://localhost:5000/v0/post/users", { name, email });
         setName("");
         setEmail("");
         setMdp("");
@@ -26,7 +26,7 @@ const User = () => {
     };
 
     const updateUser = async () => {
-        await axios.put(`http://localhost:5000/users/${selectedUser._id}`, {
+        await axios.put(`http://localhost:5000/v0/put/user/${selectedUser._id}`, {
             name,
             email,
         });
@@ -37,7 +37,7 @@ const User = () => {
     };
 
     const deleteUser = async (id) => {
-        await axios.delete(`http://localhost:5000/users/${id}`);
+        await axios.delete(`http://localhost:5000/v0/delete/users/${id}`);
         getUsers();
     };
 
